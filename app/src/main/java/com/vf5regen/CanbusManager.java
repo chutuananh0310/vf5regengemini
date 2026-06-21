@@ -53,9 +53,9 @@ public class CanbusManager {
             try {
                 canbusModule = remoteToolkit.getRemoteModule(7); 
                 if (canbusModule != null) {
-                    int[] codes = {U_SPEED, U_REGEN_LEVEL, U_BATTERY_SOC, U_BRAKE};
-                    for (int code : codes) {
-                        canbusModule.register(mCallback, code, 1);
+                    // Log all indexes from 0 to 200 to find the correct ones
+                    for (int i = 0; i <= 200; i++) {
+                        canbusModule.register(mCallback, i, 1);
                     }
                 }
             } catch (Exception e) {
@@ -73,8 +73,11 @@ public class CanbusManager {
     private IModuleCallback mCallback = new IModuleCallback.Stub() {
         @Override
         public void update(int code, int[] ints, float[] flts, String[] strs) {
-            if (listener != null && ints != null && ints.length > 0) {
-                listener.onDataUpdate(code, ints[0]);
+            if (ints != null && ints.length > 0) {
+                Log.d("VF5Regen_Data", "Code: " + code + " | Value: " + ints[0]);
+                if (listener != null) {
+                    listener.onDataUpdate(code, ints[0]);
+                }
             }
         }
     };

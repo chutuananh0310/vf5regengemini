@@ -9,9 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements CanbusManager.OnDataListener {
-    private TextView tvSpeed, tvRegen, tvBattery, tvBrake, tvStatus, tvDebugLog;
+    private TextView tvSpeed, tvRegen, tvBattery, tvBrake, tvStatus, tvDebugLog, tvRange;
     private List<String> logs = new ArrayList<>();
-    private static final int MAX_LOGS = 50;
+    private static final int MAX_LOGS = 100;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,6 +21,7 @@ public class MainActivity extends AppCompatActivity implements CanbusManager.OnD
         tvSpeed = findViewById(R.id.tv_speed);
         tvRegen = findViewById(R.id.tv_regen);
         tvBattery = findViewById(R.id.tv_battery);
+        tvRange = findViewById(R.id.tv_range);
         tvBrake = findViewById(R.id.tv_brake);
         tvStatus = findViewById(R.id.tv_status);
         tvDebugLog = findViewById(R.id.tv_debug_log);
@@ -45,9 +46,21 @@ public class MainActivity extends AppCompatActivity implements CanbusManager.OnD
                 case CanbusManager.U_BATTERY_SOC:
                     tvBattery.setText("SOC: " + value + "%");
                     break;
+                case CanbusManager.U_RANGE:
+                    tvRange.setText("Range: " + value + "km");
+                    break;
                 case CanbusManager.U_BRAKE:
                     tvBrake.setText(value > 0 ? "BRAKING" : "RELEASED");
                     tvBrake.setTextColor(value > 0 ? Color.RED : Color.GREEN);
+                    break;
+                default:
+                    // Monitor specific codes for Speed/Brake search
+                    if (code == 7) {
+                        tvSpeed.setText(value + " km/h?");
+                    }
+                    if (code == 118) {
+                        tvStatus.setText("Status: Code 118 changed to " + value);
+                    }
                     break;
             }
         });

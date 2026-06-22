@@ -17,11 +17,12 @@ public class CanbusManager {
     private Context context;
     private boolean isConnecting = false;
 
-    // VinFast 5 Data Indexes
+    // VinFast 5 Data Indexes (Referenced from com.syu.module.canbus.Callback_0453)
     public static final int U_SPEED = 7;          
-    public static final int U_REGEN_LEVEL = 110;  
-    public static final int U_BATTERY_SOC = 114;  
-    public static final int U_BRAKE = 113;        
+    public static final int U_REGEN_LEVEL = 110;  // U_CARSET_D26_D4_B5
+    public static final int U_BATTERY_SOC = 114;  // U_CARSET_D40_D2_B70
+    public static final int U_BRAKE = 101;        // U_CARSET_D26_D2_B40 (Potential Brake/Gear)
+    public static final int U_RANGE = 113;        // U_CARSET_D40_D0_D1 (Range)
 
     public interface OnDataListener {
         void onDataUpdate(int code, int value);
@@ -74,9 +75,10 @@ public class CanbusManager {
             if (listener != null) listener.onConnectionStatus(true);
             remoteToolkit = IRemoteToolkit.Stub.asInterface(service);
             try {
-                canbusModule = remoteToolkit.getRemoteModule(7); 
+                // VinFast VF5 Module ID is 453 according to sample project
+                canbusModule = remoteToolkit.getRemoteModule(453); 
                 if (canbusModule != null) {
-                    // Log all indexes from 0 to 200 to find the correct ones
+                    // Registering range 0-250 based on sample's 0-119 limit
                     for (int i = 0; i <= 250; i++) {
                         canbusModule.register(mCallback, i, 1);
                     }

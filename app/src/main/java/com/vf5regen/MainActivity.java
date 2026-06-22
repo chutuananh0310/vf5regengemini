@@ -5,8 +5,13 @@ import android.os.Bundle;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity implements CanbusManager.OnDataListener {
-    private TextView tvSpeed, tvRegen, tvBattery, tvBrake;
+    private TextView tvSpeed, tvRegen, tvBattery, tvBrake, tvStatus, tvDebugLog;
+    private List<String> logs = new ArrayList<>();
+    private static final int MAX_LOGS = 50;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -17,6 +22,8 @@ public class MainActivity extends AppCompatActivity implements CanbusManager.OnD
         tvRegen = findViewById(R.id.tv_regen);
         tvBattery = findViewById(R.id.tv_battery);
         tvBrake = findViewById(R.id.tv_brake);
+        tvStatus = findViewById(R.id.tv_status);
+        tvDebugLog = findViewById(R.id.tv_debug_log);
 
         CanbusManager.getInstance(this).connect(this);
     }
@@ -24,6 +31,9 @@ public class MainActivity extends AppCompatActivity implements CanbusManager.OnD
     @Override
     public void onDataUpdate(int code, int value) {
         runOnUiThread(() -> {
+            updateDebugLog(code, value);
+            tvStatus.setText("Status: Connected (Last: Code " + code + ")");
+
             switch (code) {
                 case CanbusManager.U_SPEED:
                     tvSpeed.setText(value + " km/h");
@@ -41,5 +51,32 @@ public class MainActivity extends AppCompatActivity implements CanbusManager.OnD
                     break;
             }
         });
+    }
+
+    @Override
+    public void onConnectionStatus(boolean connected) {
+        runOnUiThread(() -> {
+            if (connected) {
+                tvStatus.setText("Status: Connected");
+                tvStatus.setTextColor(Color.GREEN);
+            } else {
+                tvStatus.setText("Status: Disconnected - Retrying...");
+                tvStatus.setTextColor(Color.RED);
+            }
+        });
+    }
+
+    private void updateDebugLog(int code, int value) {
+        String logEntry = "Code: " + code + " | Value: " + value;
+        logs.add(0, logEntry);
+        if (logs.size() > MAX_LOGS) {
+            logs.remove(logs.size() - 1);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (String log : logs) {
+            sb.append(log).append("\n");
+        }
+        tvDebugLog.setText(sb.toString());
     }
 }

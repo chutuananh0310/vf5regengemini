@@ -14,6 +14,7 @@ public class CanbusManager {
     private static CanbusManager instance;
     private IRemoteToolkit remoteToolkit;
     private IRemoteModule canbusModule;
+    private IRemoteModule mainModule;
     private Context context;
     private boolean isConnecting = false;
 
@@ -75,12 +76,19 @@ public class CanbusManager {
             if (listener != null) listener.onConnectionStatus(true);
             remoteToolkit = IRemoteToolkit.Stub.asInterface(service);
             try {
-                // Reverting to Module ID 7 as confirmed working by user images
+                // Module 7: Canbus Info (SOC, Range, Regen)
                 canbusModule = remoteToolkit.getRemoteModule(7); 
                 if (canbusModule != null) {
-                    // Registering range 0-1000 to catch SOC, Range, Regen and others
                     for (int i = 0; i <= 1000; i++) {
                         canbusModule.register(mCallback, i, 1);
+                    }
+                }
+
+                // Module 0: Real-time Driving Data (Speed, Brake, Gear, Camping Mode)
+                mainModule = remoteToolkit.getRemoteModule(0);
+                if (mainModule != null) {
+                    for (int i = 0; i <= 1000; i++) {
+                        mainModule.register(mCallback, i, 1);
                     }
                 }
             } catch (Exception e) {

@@ -32,10 +32,17 @@ public class MainActivity extends AppCompatActivity implements CanbusManager.OnD
     @Override
     public void onDataUpdate(int code, int value) {
         runOnUiThread(() -> {
-            updateDebugLog(code, value);
-            // Hiển thị to mã cuối cùng để dò tìm Phanh/Tốc độ
-            tvStatus.setText("LATEST CODE: " + code + " | VALUE: " + value);
-            tvStatus.setTextSize(24);
+            // Không log hết 1000 mã để tránh lag, chỉ log những mã thay đổi
+            String logEntry = "Code: " + code + " | Value: " + value;
+            logs.add(0, logEntry);
+            if (logs.size() > MAX_LOGS) logs.remove(logs.size() - 1);
+            
+            StringBuilder sb = new StringBuilder();
+            for (String log : logs) sb.append(log).append("\n");
+            tvDebugLog.setText(sb.toString());
+
+            tvStatus.setText("LATEST: " + code + " -> " + value);
+            tvStatus.setTextSize(22);
 
             switch (code) {
                 case CanbusManager.U_SPEED:

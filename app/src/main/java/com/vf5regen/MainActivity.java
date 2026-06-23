@@ -33,7 +33,9 @@ public class MainActivity extends AppCompatActivity implements CanbusManager.OnD
     public void onDataUpdate(int code, int value) {
         runOnUiThread(() -> {
             updateDebugLog(code, value);
-            tvStatus.setText("Status: Connected (Last: Code " + code + ")");
+            // Hiển thị to mã cuối cùng để dò tìm Phanh/Tốc độ
+            tvStatus.setText("LATEST CODE: " + code + " | VALUE: " + value);
+            tvStatus.setTextSize(24);
 
             switch (code) {
                 case CanbusManager.U_SPEED:

@@ -75,11 +75,11 @@ public class CanbusManager {
             if (listener != null) listener.onConnectionStatus(true);
             remoteToolkit = IRemoteToolkit.Stub.asInterface(service);
             try {
-                // VinFast VF5 Module ID is 453 according to sample project
-                canbusModule = remoteToolkit.getRemoteModule(453); 
+                // Reverting to Module ID 7 as confirmed working by user images
+                canbusModule = remoteToolkit.getRemoteModule(7); 
                 if (canbusModule != null) {
-                    // Registering range 0-250 based on sample's 0-119 limit
-                    for (int i = 0; i <= 250; i++) {
+                    // Registering range 0-1000 to catch SOC, Range, Regen and others
+                    for (int i = 0; i <= 1000; i++) {
                         canbusModule.register(mCallback, i, 1);
                     }
                 }

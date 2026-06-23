@@ -9,11 +9,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private TextView tvSpeed, tvRegen, tvBattery, tvBrake, tvCanbusStatus, tvCanbusDebugLog, tvDrivingStatus, tvDrivingDebugLog, tvRange;
+    private TextView tvSpeed, tvRegen, tvBattery, tvBrake, tvRange;
+    private TextView tvCanbusStatus, tvCanbusDebugLog;
+    private TextView tvDrivingStatus, tvDrivingDebugLog;
+    private TextView tvModule5Status, tvModule5DebugLog;
     
-    private List<String> canbusLogs = new ArrayList<>();
-    private List<String> drivingLogs = new ArrayList<>();
-    private static final int MAX_LOGS = 500;
+    private final List<String> canbusLogs = new ArrayList<>();
+    private final List<String> drivingLogs = new ArrayList<>();
+    private final List<String> module5Logs = new ArrayList<>();
+    private static final int MAX_LOGS = 100;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +35,9 @@ public class MainActivity extends AppCompatActivity {
         
         tvDrivingStatus = findViewById(R.id.tv_driving_status);
         tvDrivingDebugLog = findViewById(R.id.tv_driving_debug_log);
+
+        tvModule5Status = findViewById(R.id.tv_module5_status);
+        tvModule5DebugLog = findViewById(R.id.tv_module5_debug_log);
 
         // Connect to Module 7 (Canbus)
         CanbusManager.getInstance(this).connect(new CanbusManager.OnDataListener() {
@@ -63,12 +70,26 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
+
+        // Connect to Module 5
+        Module5Manager.getInstance(this).connect(new Module5Manager.OnDataListener() {
+            @Override
+            public void onDataUpdate(int code, int value) {
+                runOnUiThread(() -> handleModule5Data(code, value));
+            }
+
+            @Override
+            public void onConnectionStatus(boolean connected) {
+                runOnUiThread(() -> {
+                    tvModule5Status.setText("Module 5: " + (connected ? "Connected" : "Disconnected"));
+                    tvModule5Status.setTextColor(connected ? Color.GREEN : Color.RED);
+                });
+            }
+        });
     }
 
     private void handleCanbusData(int code, int value) {
         String logEntry = "C[" + code + "]: " + value;
-        
-        // Specific formatting for known codes
         if (code == CanbusManager.U_TIME_TO_FULL) {
             int h = value / 60;
             int m = value % 60;
@@ -97,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case CanbusManager.U_CHARGING_STATUS:
                 if (value == 1) {
-                    tvBattery.setTextColor(Color.YELLOW); // Highlight when charging
+                    tvBattery.setTextColor(Color.YELLOW);
                 } else {
                     tvBattery.setTextColor(Color.parseColor("#03A9F4"));
                 }
@@ -119,9 +140,19 @@ public class MainActivity extends AppCompatActivity {
                 tvSpeed.setText(value + " km/h");
                 break;
             case DrivingManager.D_BRAKE:
-                // We still need to confirm if 139 or something else is brake
-                // For now just monitoring
+                tvBrake.setText(value > 0 ? "BRAKING" : "RELEASED");
+                tvBrake.setTextColor(value > 0 ? Color.RED : Color.GREEN);
                 break;
         }
+    }
+
+    private void handleModule5Data(int code, int value) {
+        String logEntry = "M5[" + code + "]: " + value;
+        module5Logs.add(0, logEntry);
+        if (module5Logs.size() > MAX_LOGS) module5Logs.remove(module5Logs.size() - 1);
+        
+        StringBuilder sb = new StringBuilder();
+        for (String log : module5Logs) sb.append(log).append("\n");
+        tvModule5DebugLog.setText(sb.toString());
     }
 }

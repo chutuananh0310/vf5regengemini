@@ -20,12 +20,13 @@ public class CanbusManager {
 
     private static String tag = "VF5Regen_Canbus";
 
-    // VinFast 5 Data Indexes (Referenced from com.syu.module.canbus.Callback_0453)
-    public static final int U_SPEED = 7;          
-    public static final int U_REGEN_LEVEL = 110;  // U_CARSET_D26_D4_B5
-    public static final int U_BATTERY_SOC = 114;  // U_CARSET_D40_D2_B70
-    public static final int U_BRAKE = 101;        // U_CARSET_D26_D2_B40 (Potential Brake/Gear)
-    public static final int U_RANGE = 113;        // U_CARSET_D40_D0_D1 (Range)
+    // VinFast 5 Data Indexes for Module 7 (Canbus)
+    public static final int U_REGEN_LEVEL = 110;  // Regen Level: 0:Off, 1:Low, 2:High
+    public static final int U_RANGE = 113;        // Range (Km)
+    public static final int U_BATTERY_SOC = 114;  // Battery SOC (%)
+    public static final int U_CHARGING_STATUS = 115; // Charging Gun: 1:Connected, 0:Unconnected
+    public static final int U_TIME_TO_FULL = 116;    // Time to full (Minutes)
+    public static final int U_CHARGING_LIMIT = 118;  // Charging Limit (%) 0:50, 1:60... 5:100
 
     public interface OnDataListener {
         void onDataUpdate(int code, int value);
@@ -81,7 +82,8 @@ public class CanbusManager {
                 // Module 7: Canbus Info (SOC, Range, Regen)
                 canbusModule = remoteToolkit.getRemoteModule(7); 
                 if (canbusModule != null) {
-                    for (int i = 0; i <= 1000; i++) {
+                    Log.d(tag, "Registering Module 7 (Canbus) IDs 0-200");
+                    for (int i = 0; i <= 200; i++) {
                         canbusModule.register(mCallback, i, 1);
                     }
                 }

@@ -8,10 +8,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements CanbusManager.OnDataListener {
-    private TextView tvSpeed, tvRegen, tvBattery, tvBrake, tvStatus, tvDebugLog, tvRange;
+public class MainActivity extends AppCompatActivity implements CanbusManager.OnDataListener, DrivingManager.OnDataListener  {
+    private TextView tvSpeed, tvRegen, tvBattery, tvBrake, tvCanbusStatus, tvCanbusDebugLog, tvDrivingStatus, tvDrivingDebugLog, tvRange;
     private List<String> logs = new ArrayList<>();
-    private static final int MAX_LOGS = 100;
+    private static final int MAX_LOGS = 1000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,8 +23,10 @@ public class MainActivity extends AppCompatActivity implements CanbusManager.OnD
         tvBattery = findViewById(R.id.tv_battery);
         tvRange = findViewById(R.id.tv_range);
         tvBrake = findViewById(R.id.tv_brake);
-        tvStatus = findViewById(R.id.tv_status);
-        tvDebugLog = findViewById(R.id.tv_debug_log);
+        tvCanbusStatus = findViewById(R.id.tv_canbus_status);
+        tvCanbusDebugLog = findViewById(R.id.tv_canbus_debug_log);
+        tvDrivingStatus = findViewById(R.id.tv_driving_status);
+        tvDrivingDebugLog = findViewById(R.id.tv_driving_debug_log);
 
         CanbusManager.getInstance(this).connect(this);
     }
@@ -36,13 +38,13 @@ public class MainActivity extends AppCompatActivity implements CanbusManager.OnD
             String logEntry = "Code: " + code + " | Value: " + value;
             logs.add(0, logEntry);
             if (logs.size() > MAX_LOGS) logs.remove(logs.size() - 1);
-            
+
             StringBuilder sb = new StringBuilder();
             for (String log : logs) sb.append(log).append("\n");
-            tvDebugLog.setText(sb.toString());
+            tvCanbusDebugLog.setText(sb.toString());
 
-            tvStatus.setText("LATEST: " + code + " -> " + value);
-            tvStatus.setTextSize(22);
+            tvCanbusStatus.setText("LATEST: " + code + " -> " + value);
+            tvCanbusStatus.setTextSize(22);
 
             switch (code) {
                 case CanbusManager.U_SPEED:
@@ -68,7 +70,7 @@ public class MainActivity extends AppCompatActivity implements CanbusManager.OnD
                         tvSpeed.setText(value + " km/h?");
                     }
                     if (code == 118) {
-                        tvStatus.setText("Status: Code 118 changed to " + value);
+                        tvCanbusStatus.setText("Status: Code 118 changed to " + value);
                     }
                     break;
             }
@@ -79,11 +81,11 @@ public class MainActivity extends AppCompatActivity implements CanbusManager.OnD
     public void onConnectionStatus(boolean connected) {
         runOnUiThread(() -> {
             if (connected) {
-                tvStatus.setText("Status: Connected");
-                tvStatus.setTextColor(Color.GREEN);
+                tvCanbusStatus.setText("Status: Connected");
+                tvCanbusStatus.setTextColor(Color.GREEN);
             } else {
-                tvStatus.setText("Status: Disconnected - Retrying...");
-                tvStatus.setTextColor(Color.RED);
+                tvCanbusStatus.setText("Status: Disconnected - Retrying...");
+                tvCanbusStatus.setTextColor(Color.RED);
             }
         });
     }
@@ -99,6 +101,6 @@ public class MainActivity extends AppCompatActivity implements CanbusManager.OnD
         for (String log : logs) {
             sb.append(log).append("\n");
         }
-        tvDebugLog.setText(sb.toString());
+        tvCanbusDebugLog.setText(sb.toString());
     }
 }

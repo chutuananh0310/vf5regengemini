@@ -10,22 +10,18 @@ import com.syu.ipc.IModuleCallback;
 import com.syu.ipc.IRemoteModule;
 import com.syu.ipc.IRemoteToolkit;
 
-public class CanbusManager {
-    private static CanbusManager instance;
+public class DrivingManager {
+    private static DrivingManager instance;
     private IRemoteToolkit remoteToolkit;
-    private IRemoteModule canbusModule;
     private IRemoteModule mainModule;
     private Context context;
     private boolean isConnecting = false;
 
-    private static String tag = "VF5Regen_Canbus";
+    private static String tag = "VF5Regen_Driving";
 
     // VinFast 5 Data Indexes (Referenced from com.syu.module.canbus.Callback_0453)
-    public static final int U_SPEED = 7;          
-    public static final int U_REGEN_LEVEL = 110;  // U_CARSET_D26_D4_B5
-    public static final int U_BATTERY_SOC = 114;  // U_CARSET_D40_D2_B70
-    public static final int U_BRAKE = 101;        // U_CARSET_D26_D2_B40 (Potential Brake/Gear)
-    public static final int U_RANGE = 113;        // U_CARSET_D40_D0_D1 (Range)
+    public static final int D_SPEED = 101;
+    public static final int D_BRAKE = 139;        // U_CARSET_D26_D2_B40 (Potential Brake/Gear)
 
     public interface OnDataListener {
         void onDataUpdate(int code, int value);
@@ -34,12 +30,12 @@ public class CanbusManager {
 
     private OnDataListener listener;
 
-    public static synchronized CanbusManager getInstance(Context ctx) {
-        if (instance == null) instance = new CanbusManager(ctx);
+    public static synchronized DrivingManager getInstance(Context ctx) {
+        if (instance == null) instance = new DrivingManager(ctx);
         return instance;
     }
 
-    private CanbusManager(Context ctx) {
+    private DrivingManager(Context ctx) {
         this.context = ctx.getApplicationContext();
     }
 
@@ -78,11 +74,11 @@ public class CanbusManager {
             if (listener != null) listener.onConnectionStatus(true);
             remoteToolkit = IRemoteToolkit.Stub.asInterface(service);
             try {
-                // Module 7: Canbus Info (SOC, Range, Regen)
-                canbusModule = remoteToolkit.getRemoteModule(7); 
-                if (canbusModule != null) {
+                // Module 0: Real-time Driving Data (Speed, Brake, Gear, Camping Mode)
+                mainModule = remoteToolkit.getRemoteModule(0);
+                if (mainModule != null) {
                     for (int i = 0; i <= 1000; i++) {
-                        canbusModule.register(mCallback, i, 1);
+                        mainModule.register(mCallback, i, 1);
                     }
                 }
             } catch (Exception e) {
@@ -93,7 +89,7 @@ public class CanbusManager {
         @Override
         public void onServiceDisconnected(ComponentName name) {
             Log.d(tag, "Service Disconnected");
-            canbusModule = null;
+            mainModule = null;
             isConnecting = false;
             retryConnection();
         }

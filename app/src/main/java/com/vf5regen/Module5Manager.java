@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.util.Log;
+import android.util.SparseArray;
 import com.syu.ipc.IModuleCallback;
 import com.syu.ipc.IRemoteModule;
 import com.syu.ipc.IRemoteToolkit;
@@ -13,19 +14,19 @@ import com.syu.ipc.IRemoteToolkit;
 public class Module5Manager {
     private static Module5Manager instance;
     private IRemoteToolkit remoteToolkit;
-    private IRemoteModule module5;
     private Context context;
     private boolean isConnecting = false;
+    private final SparseArray<IRemoteModule> activeModules = new SparseArray<>();
 
-    private static String tag = "VF5Regen_Module5";
+    private static final String tag = "VF5Regen_Scanner";
 
-    public interface OnDataListener {
-        void onDataUpdate(int code, int value);
+    public interface OnGlobalDataListener {
+        void onDataUpdate(int moduleId, int code, int value);
         void onConnectionStatus(boolean connected);
-        void onModuleFound(int moduleId);
+        void onNewModuleDiscovered(int moduleId);
     }
 
-    private OnDataListener listener;
+    private OnGlobalDataListener listener;
 
     public static synchronized Module5Manager getInstance(Context ctx) {
         if (instance == null) instance = new Module5Manager(ctx);
@@ -36,7 +37,7 @@ public class Module5Manager {
         this.context = ctx.getApplicationContext();
     }
 
-    public void connect(OnDataListener listener) {
+    public void connect(OnGlobalDataListener listener) {
         this.listener = listener;
         bindToService();
     }
@@ -44,49 +45,39 @@ public class Module5Manager {
     private void bindToService() {
         if (isConnecting) return;
         isConnecting = true;
-        Log.d(tag, "Attempting to bind to service...");
         Intent intent = new Intent("com.syu.ms.toolkit");
         intent.setPackage("com.syu.ms");
-        boolean bound = context.bindService(intent, mConn, Context.BIND_AUTO_CREATE);
-        if (!bound) {
-            isConnecting = false;
-            retryConnection();
-        }
+        context.bindService(intent, mConn, Context.BIND_AUTO_CREATE);
     }
 
     private void retryConnection() {
         if (listener != null) listener.onConnectionStatus(false);
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            bindToService();
-        }, 3000);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this::bindToService, 3000);
     }
 
-    private ServiceConnection mConn = new ServiceConnection() {
+    private final ServiceConnection mConn = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.d(tag, "Service Connected");
             isConnecting = false;
             if (listener != null) listener.onConnectionStatus(true);
             remoteToolkit = IRemoteToolkit.Stub.asInterface(service);
+            
             try {
-                // Probe for available modules (0-25)
-                for (int m = 0; m <= 25; m++) {
-                    try {
-                        IRemoteModule mod = remoteToolkit.getRemoteModule(m);
-                        if (mod != null) {
-                            if (listener != null) listener.onModuleFound(m);
-                            Log.d("VF5Regen_Probe", ">>> Found Module: " + m);
+                // Quét từ module 1 đến 20 (bỏ qua 0 và 7 vì đã có manager riêng)
+                for (int m = 1; m <= 20; m++) {
+                    if (m == 7) continue; 
+                    
+                    IRemoteModule mod = remoteToolkit.getRemoteModule(m);
+                    if (mod != null) {
+                        activeModules.put(m, mod);
+                        if (listener != null) listener.onNewModuleDiscovered(m);
+                        
+                        // Đăng ký dải ID rộng cho mỗi module tìm thấy
+                        Log.d(tag, "Registering Module " + m + " IDs 0-1000");
+                        for (int i = 0; i <= 1000; i++) {
+                            mod.register(new GlobalCallback(m), i, 1);
                         }
-                    } catch (Exception e) {
-                        // ignore
-                    }
-                }
-
-                module5 = remoteToolkit.getRemoteModule(5);
-                if (module5 != null) {
-                    // Register a very wide range of IDs to be sure
-                    for (int i = 0; i <= 1000; i++) {
-                        module5.register(mCallback, i, 1);
+                        Log.d(tag, "Attached to Module: " + m);
                     }
                 }
             } catch (Exception e) {
@@ -96,21 +87,24 @@ public class Module5Manager {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            Log.d(tag, "Service Disconnected");
-            module5 = null;
+            activeModules.clear();
             isConnecting = false;
             retryConnection();
         }
     };
 
-    private IModuleCallback mCallback = new IModuleCallback.Stub() {
+    // Callback class riêng để biết dữ liệu đến từ module nào
+    private class GlobalCallback extends IModuleCallback.Stub {
+        private final int moduleId;
+        public GlobalCallback(int id) { this.moduleId = id; }
+
         @Override
         public void update(int code, int[] ints, float[] flts, String[] strs) {
             if (ints != null && ints.length > 0) {
                 if (listener != null) {
-                    listener.onDataUpdate(code, ints[0]);
+                    listener.onDataUpdate(moduleId, code, ints[0]);
                 }
             }
         }
-    };
+    }
 }

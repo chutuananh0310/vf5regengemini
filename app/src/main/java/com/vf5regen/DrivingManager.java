@@ -77,8 +77,8 @@ public class DrivingManager {
                 // Module 0: Real-time Driving Data (Speed, Brake, Gear, Camping Mode)
                 mainModule = remoteToolkit.getRemoteModule(0);
                 if (mainModule != null) {
-                    Log.d(tag, "Registering Module 0 (Main) IDs 0-200");
-                    for (int i = 0; i <= 200; i++) {
+                    Log.d(tag, "Registering Module 0 (Main) IDs 0-1000");
+                    for (int i = 0; i <= 1000; i++) {
                         mainModule.register(mCallback, i, 1);
                     }
                 }

@@ -82,8 +82,8 @@ public class CanbusManager {
                 // Module 7: Canbus Info (SOC, Range, Regen)
                 canbusModule = remoteToolkit.getRemoteModule(7); 
                 if (canbusModule != null) {
-                    Log.d(tag, "Registering Module 7 (Canbus) IDs 0-200");
-                    for (int i = 0; i <= 200; i++) {
+                    Log.d(tag, "Registering Module 7 (Canbus) IDs 0-1000");
+                    for (int i = 0; i <= 1000; i++) {
                         canbusModule.register(mCallback, i, 1);
                     }
                 }

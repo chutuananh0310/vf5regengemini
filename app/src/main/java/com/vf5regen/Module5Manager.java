@@ -22,6 +22,7 @@ public class Module5Manager {
     public interface OnDataListener {
         void onDataUpdate(int code, int value);
         void onConnectionStatus(boolean connected);
+        void onModuleFound(int moduleId);
     }
 
     private OnDataListener listener;
@@ -68,10 +69,23 @@ public class Module5Manager {
             if (listener != null) listener.onConnectionStatus(true);
             remoteToolkit = IRemoteToolkit.Stub.asInterface(service);
             try {
+                // Probe for available modules (0-25)
+                for (int m = 0; m <= 25; m++) {
+                    try {
+                        IRemoteModule mod = remoteToolkit.getRemoteModule(m);
+                        if (mod != null) {
+                            if (listener != null) listener.onModuleFound(m);
+                            Log.d("VF5Regen_Probe", ">>> Found Module: " + m);
+                        }
+                    } catch (Exception e) {
+                        // ignore
+                    }
+                }
+
                 module5 = remoteToolkit.getRemoteModule(5);
                 if (module5 != null) {
-                    Log.d(tag, "Registering Module 5 IDs 0-200");
-                    for (int i = 0; i <= 200; i++) {
+                    // Register a very wide range of IDs to be sure
+                    for (int i = 0; i <= 1000; i++) {
                         module5.register(mCallback, i, 1);
                     }
                 }
@@ -93,7 +107,6 @@ public class Module5Manager {
         @Override
         public void update(int code, int[] ints, float[] flts, String[] strs) {
             if (ints != null && ints.length > 0) {
-                Log.d(tag, "Code: " + code + " | Value: " + ints[0]);
                 if (listener != null) {
                     listener.onDataUpdate(code, ints[0]);
                 }

@@ -23,6 +23,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        
+        // Initialize File Logger
+        Logger.init(this);
+        Logger.log("App Started - Path: " + Logger.getLogPath());
 
         tvSpeed = findViewById(R.id.tv_speed);
         tvRegen = findViewById(R.id.tv_regen);
@@ -38,8 +42,10 @@ public class MainActivity extends AppCompatActivity {
 
         tvModule5Status = findViewById(R.id.tv_module5_status);
         tvModule5DebugLog = findViewById(R.id.tv_module5_debug_log);
+        
+        tvModule5DebugLog.setText("Log Path:\n" + Logger.getLogPath());
 
-        // Connect to Module 7 (Canbus)
+        // Module 7 (Canbus)
         CanbusManager.getInstance(this).connect(new CanbusManager.OnDataListener() {
             @Override
             public void onDataUpdate(int code, int value) {
@@ -49,13 +55,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onConnectionStatus(boolean connected) {
                 runOnUiThread(() -> {
-                    tvCanbusStatus.setText("Canbus: " + (connected ? "Connected" : "Disconnected"));
+                    tvCanbusStatus.setText("Canbus(7): " + (connected ? "Connected" : "Disconnected"));
                     tvCanbusStatus.setTextColor(connected ? Color.GREEN : Color.RED);
+                    Logger.log("Module 7 Status: " + connected);
                 });
             }
         });
 
-        // Connect to Module 0 (Driving/Main)
+        // Module 0 (Driving)
         DrivingManager.getInstance(this).connect(new DrivingManager.OnDataListener() {
             @Override
             public void onDataUpdate(int code, int value) {
@@ -65,13 +72,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onConnectionStatus(boolean connected) {
                 runOnUiThread(() -> {
-                    tvDrivingStatus.setText("Driving: " + (connected ? "Connected" : "Disconnected"));
+                    tvDrivingStatus.setText("Driving(0): " + (connected ? "Connected" : "Disconnected"));
                     tvDrivingStatus.setTextColor(connected ? Color.GREEN : Color.RED);
+                    Logger.log("Module 0 Status: " + connected);
                 });
             }
         });
 
-        // Connect to Module 5
+        // Module 5
         Module5Manager.getInstance(this).connect(new Module5Manager.OnDataListener() {
             @Override
             public void onDataUpdate(int code, int value) {
@@ -83,6 +91,17 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     tvModule5Status.setText("Module 5: " + (connected ? "Connected" : "Disconnected"));
                     tvModule5Status.setTextColor(connected ? Color.GREEN : Color.RED);
+                    Logger.log("Module 5 Status: " + connected);
+                });
+            }
+
+            @Override
+            public void onModuleFound(int moduleId) {
+                runOnUiThread(() -> {
+                    String msg = ">>> FOUND MODULE: " + moduleId;
+                    module5Logs.add(0, msg);
+                    Logger.log(msg);
+                    updateModule5UI();
                 });
             }
         });
@@ -90,14 +109,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void handleCanbusData(int code, int value) {
         String logEntry = "C[" + code + "]: " + value;
-        if (code == CanbusManager.U_TIME_TO_FULL) {
-            int h = value / 60;
-            int m = value % 60;
-            logEntry += " (" + h + "h " + m + "m)";
-        } else if (code == CanbusManager.U_CHARGING_STATUS) {
-            logEntry += value == 1 ? " (CHARGING)" : " (DISCONNECTED)";
-        }
-
         canbusLogs.add(0, logEntry);
         if (canbusLogs.size() > MAX_LOGS) canbusLogs.remove(canbusLogs.size() - 1);
         
@@ -107,8 +118,7 @@ public class MainActivity extends AppCompatActivity {
 
         switch (code) {
             case CanbusManager.U_REGEN_LEVEL:
-                String mode = (value == 0) ? "OFF" : (value == 1 ? "LOW" : "HIGH");
-                tvRegen.setText("Regen: " + mode);
+                tvRegen.setText("Regen: " + (value == 0 ? "OFF" : (value == 1 ? "LOW" : "HIGH")));
                 break;
             case CanbusManager.U_BATTERY_SOC:
                 tvBattery.setText("SOC: " + value + "%");
@@ -116,18 +126,15 @@ public class MainActivity extends AppCompatActivity {
             case CanbusManager.U_RANGE:
                 tvRange.setText("Range: " + value + "km");
                 break;
-            case CanbusManager.U_CHARGING_STATUS:
-                if (value == 1) {
-                    tvBattery.setTextColor(Color.YELLOW);
-                } else {
-                    tvBattery.setTextColor(Color.parseColor("#03A9F4"));
-                }
-                break;
         }
     }
 
     private void handleDrivingData(int code, int value) {
+        if (code == 41) return; // Hide noisy inclination
+
         String logEntry = "D[" + code + "]: " + value;
+        Logger.log(logEntry); // Save to file
+
         drivingLogs.add(0, logEntry);
         if (drivingLogs.size() > MAX_LOGS) drivingLogs.remove(drivingLogs.size() - 1);
         
@@ -135,23 +142,26 @@ public class MainActivity extends AppCompatActivity {
         for (String log : drivingLogs) sb.append(log).append("\n");
         tvDrivingDebugLog.setText(sb.toString());
 
-        switch (code) {
-            case DrivingManager.D_SPEED:
-                tvSpeed.setText(value + " km/h");
-                break;
-            case DrivingManager.D_BRAKE:
-                tvBrake.setText(value > 0 ? "BRAKING" : "RELEASED");
-                tvBrake.setTextColor(value > 0 ? Color.RED : Color.GREEN);
-                break;
+        if (code == DrivingManager.D_SPEED) {
+            tvSpeed.setText(value + " km/h");
+        } else if (code == 114 || code == 115) {
+            tvBrake.setText(value > 0 ? "BRAKING" : "RELEASED");
+            tvBrake.setTextColor(value > 0 ? Color.RED : Color.GREEN);
         }
     }
 
     private void handleModule5Data(int code, int value) {
         String logEntry = "M5[" + code + "]: " + value;
+        Logger.log(logEntry); // Save to file
+        
         module5Logs.add(0, logEntry);
         if (module5Logs.size() > MAX_LOGS) module5Logs.remove(module5Logs.size() - 1);
-        
+        updateModule5UI();
+    }
+
+    private void updateModule5UI() {
         StringBuilder sb = new StringBuilder();
+        sb.append("Log: ").append(Logger.getLogPath()).append("\n\n");
         for (String log : module5Logs) sb.append(log).append("\n");
         tvModule5DebugLog.setText(sb.toString());
     }

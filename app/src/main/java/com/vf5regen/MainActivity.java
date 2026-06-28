@@ -9,13 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private TextView tvSpeed, tvRegen, tvBattery, tvBrake, tvRange;
-    private TextView tvModuleStatus, tvScannerLog, tvDrivingLog;
+    private TextView tvSpeed, tvBattery, tvBrake, tvExplorerStatus, tvExplorerLog, tvDrivingLog;
     
-    private final List<String> scannerLogs = new ArrayList<>();
+    private final List<String> explorerLogs = new ArrayList<>();
     private final List<String> drivingLogs = new ArrayList<>();
     private final List<Integer> foundModules = new ArrayList<>();
-    private static final int MAX_LOGS = 100;
+    private static final int MAX_LOGS = 1000; // Tăng dung lượng log để hiển thị nhiều ký tự hơn
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,34 +24,40 @@ public class MainActivity extends AppCompatActivity {
         Logger.init(this);
 
         tvSpeed = findViewById(R.id.tv_speed);
-        tvRegen = findViewById(R.id.tv_regen);
         tvBattery = findViewById(R.id.tv_battery);
-        tvRange = findViewById(R.id.tv_range);
         tvBrake = findViewById(R.id.tv_brake);
         
-        tvModuleStatus = findViewById(R.id.tv_module_status);
-        tvScannerLog = findViewById(R.id.tv_scanner_log);
+        tvExplorerStatus = findViewById(R.id.tv_explorer_status);
+        tvExplorerLog = findViewById(R.id.tv_explorer_log);
         tvDrivingLog = findViewById(R.id.tv_driving_debug_log);
 
-        // 1. Module 7 (Canbus) - SOC, Range, Regen
+        // Module 7 ngầm (Pin)
         CanbusManager.getInstance(this).connect(new CanbusManager.OnDataListener() {
             @Override
             public void onDataUpdate(int code, int value) {
-                runOnUiThread(() -> handleCoreCanbusData(code, value));
+                runOnUiThread(() -> {
+                    if (code == CanbusManager.U_BATTERY_SOC) tvBattery.setText("SOC: " + value + "%");
+                });
             }
             @Override
             public void onConnectionStatus(boolean connected) {}
         });
 
-        // 2. Module 0 (Driving) - Speed, Brake, xi nhan...
+        // Module 0 (Driving) - Hiện log cột trái
         DrivingManager.getInstance(this).connect(new DrivingManager.OnDataListener() {
             @Override
             public void onDataUpdate(int code, int value) {
                 runOnUiThread(() -> {
-                    handleCoreDrivingData(code, value);
+                    if (code == DrivingManager.D_SPEED) tvSpeed.setText(value + " km/h");
                     
-                    // Show Log for Module 0
-                    if (code != 41) { // Skip noisy Pitch
+                    // Cập nhật phanh nghi vấn
+                    if (code == 114 || code == 115 || code == 139) {
+                        tvBrake.setText(value > 0 ? "BRAKING (" + code + ")" : "RELEASED");
+                        tvBrake.setTextColor(value > 0 ? Color.RED : Color.GREEN);
+                    }
+
+                    // Hiển thị Log Module 0 (Cột trái)
+                    if (code != 41) { // Bỏ qua Pitch gây nhiễu
                         String entry = "D[" + code + "]: " + value;
                         drivingLogs.add(0, entry);
                         if (drivingLogs.size() > MAX_LOGS) drivingLogs.remove(drivingLogs.size() - 1);
@@ -67,27 +72,28 @@ public class MainActivity extends AppCompatActivity {
             public void onConnectionStatus(boolean connected) {}
         });
 
-        // 3. Global Scanner (Module 1-20)
-        Module5Manager.getInstance(this).connect(new Module5Manager.OnGlobalDataListener() {
+        // Trình quét tự động Module 21-500 (Cột phải)
+        Module5Manager.getInstance(this).connect(new Module5Manager.OnExplorerListener() {
             @Override
             public void onDataUpdate(int moduleId, int code, int value) {
                 runOnUiThread(() -> {
                     String entry = "M[" + moduleId + "] C:" + code + " = " + value;
-                    Logger.log(entry);
+                    Logger.log(entry); // Ghi file toàn bộ
                     
-                    scannerLogs.add(0, entry);
-                    if (scannerLogs.size() > MAX_LOGS) scannerLogs.remove(scannerLogs.size() - 1);
+                    explorerLogs.add(0, entry);
+                    if (explorerLogs.size() > MAX_LOGS) explorerLogs.remove(explorerLogs.size() - 1);
                     
                     StringBuilder sb = new StringBuilder();
-                    for (String log : scannerLogs) sb.append(log).append("\n");
-                    tvScannerLog.setText(sb.toString());
+                    for (String log : explorerLogs) sb.append(log).append("\n");
+                    tvExplorerLog.setText(sb.toString());
                 });
             }
 
             @Override
-            public void onConnectionStatus(boolean connected) {
+            public void onServiceStatus(boolean connected) {
                 runOnUiThread(() -> {
-                    if (!connected) tvModuleStatus.setText("Status: Connection Lost...");
+                    if (connected) tvExplorerStatus.setText("Auto-Scanning Modules 21-500...");
+                    else tvExplorerStatus.setText("Service Disconnected");
                 });
             }
 
@@ -104,33 +110,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateModuleHeader() {
-        StringBuilder sb = new StringBuilder("Modules Found: ");
+        StringBuilder sb = new StringBuilder("Auto-Found: ");
         for (int id : foundModules) sb.append(id).append(", ");
-        tvModuleStatus.setText(sb.toString());
-    }
-
-    private void handleCoreCanbusData(int code, int value) {
-        switch (code) {
-            case CanbusManager.U_REGEN_LEVEL:
-                tvRegen.setText("Regen: " + (value == 0 ? "OFF" : (value == 1 ? "LOW" : "HIGH")));
-                break;
-            case CanbusManager.U_BATTERY_SOC:
-                tvBattery.setText("SOC: " + value + "%");
-                break;
-            case CanbusManager.U_RANGE:
-                tvRange.setText("Range: " + value + "km");
-                break;
-        }
-    }
-
-    private void handleCoreDrivingData(int code, int value) {
-        if (code == DrivingManager.D_SPEED) {
-            tvSpeed.setText(value + " km/h");
-        }
-        // Potential Brake IDs in Module 0
-        if (code == 114 || code == 115 || code == 139) {
-            tvBrake.setText(value > 0 ? "BRAKING (" + code + ")" : "RELEASED");
-            tvBrake.setTextColor(value > 0 ? Color.RED : Color.GREEN);
-        }
+        tvExplorerStatus.setText(sb.toString());
     }
 }

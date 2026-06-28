@@ -4,14 +4,15 @@
     android:layout_height="match_parent"
     android:background="#121212"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="4dp">
 
-    <!-- Khu vực hiển thị thông số chính -->
+    <!-- Top Bar: Thông số quan trọng -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="2dp">
 
         <TextView
             android:id="@+id/tv_speed"
@@ -19,74 +20,44 @@
             android:layout_height="wrap_content"
             android:text="0 km/h"
             android:textColor="#00E676"
-            android:textSize="50sp"
+            android:textSize="40sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tv_brake"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="30dp"
-            android:text="RELEASED"
-            android:textColor="#4CAF50"
-            android:textSize="24sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/tv_regen"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="Regen: --"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp" />
+            android:text="RELEASED"
+            android:textColor="#4CAF50"
+            android:textSize="22sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tv_battery"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
             android:text="SOC: --%"
             android:textColor="#03A9F4"
-            android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/tv_range"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:text="Range: --km"
-            android:textColor="#E91E63"
-            android:textSize="16sp" />
+            android:textSize="18sp" />
     </LinearLayout>
 
     <TextView
-        android:id="@+id/tv_module_status"
+        android:id="@+id/tv_explorer_status"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:background="#333333"
         android:padding="2dp"
-        android:text="Modules Found: ..."
+        android:text="Scanning Modules 21-500..."
         android:textColor="#FFEB3B"
-        android:textSize="12sp" />
+        android:textSize="14sp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="horizontal"
-        android:layout_marginTop="4dp">
+        android:orientation="horizontal">
 
         <!-- Cột 1: Driving Module 0 -->
         <LinearLayout
@@ -94,7 +65,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:padding="2dp">
+            android:paddingRight="2dp">
 
             <TextView
                 android:layout_width="match_parent"
@@ -108,7 +79,7 @@
             <ScrollView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="#1E1E1E">
+                android:background="#000000">
                 <TextView
                     android:id="@+id/tv_driving_debug_log"
                     android:layout_width="match_parent"
@@ -116,22 +87,22 @@
                     android:fontFamily="monospace"
                     android:text="Waiting for D0..."
                     android:textColor="#AAAAAA"
-                    android:textSize="11sp" />
+                    android:textSize="13sp"
+                    android:padding="2dp"/>
             </ScrollView>
         </LinearLayout>
 
-        <!-- Cột 2: Global Scanner -->
+        <!-- Cột 2: Auto Scanner 21-500 -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1.2"
-            android:orientation="vertical"
-            android:padding="2dp">
+            android:layout_weight="1.5"
+            android:orientation="vertical">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Scanner (Mod 1-20)"
+                android:text="Scanner (Mod 21-500)"
                 android:textColor="#00E5FF"
                 android:textSize="12sp"
                 android:gravity="center"
@@ -140,24 +111,31 @@
             <ScrollView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="#1E1E1E">
+                android:background="#000000">
                 <TextView
-                    android:id="@+id/tv_scanner_log"
+                    android:id="@+id/tv_explorer_log"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="monospace"
-                    android:text="Waiting for data..."
+                    android:text="Initializing scan..."
                     android:textColor="#00E5FF"
-                    android:textSize="11sp" />
+                    android:textSize="13sp"
+                    android:padding="2dp"/>
             </ScrollView>
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Các view ẩn để tương thích code cũ -->
+    <!-- View ẩn tương thích code cũ -->
     <View android:id="@+id/tv_canbus_status" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
     <View android:id="@+id/tv_canbus_debug_log" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
     <View android:id="@+id/tv_driving_status" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
     <View android:id="@+id/tv_module5_status" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
     <View android:id="@+id/tv_module5_debug_log" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+    <View android:id="@+id/tv_regen" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+    <View android:id="@+id/tv_range" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+    <View android:id="@+id/tv_module_status" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+    <View android:id="@+id/tv_scanner_log" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+    <ListView android:id="@+id/lv_module_selector" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
+    <Button android:id="@+id/btn_toggle_explorer" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone"/>
 
 </LinearLayout>
